@@ -13,6 +13,23 @@ jobs:
       - name: Checkout
         id: checkout
         uses: actions/checkout@v4
+      
+      - name: Configure node
+        id: configure-node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        id: install-pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Install dependencies
+        id: install-dependencies
+        run: |
+          pnpm install
 
       - name: Configure AWS credentials
         id: configure-aws-credentials
@@ -31,6 +48,16 @@ jobs:
         run: |
           SHA=$(echo $GITHUB_SHA | head -c7)
           echo "sha=$SHA" >> $GITHUB_OUTPUT
+
+      - name: Run Trivy scanner
+        id: run-trivy-scanner
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: 'docker.io/my-organization/my-app:${{ github.sha }}'
+          format: 'table'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW'
 
       - name: Build and push the image to AWS ECR]
         id: build-push-image
